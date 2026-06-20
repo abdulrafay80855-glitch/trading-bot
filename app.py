@@ -1,40 +1,31 @@
 from flask import Flask, request
 import requests
+import os
 
 app = Flask(__name__)
 
-# ===== TELEGRAM CONFIG =====
-TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+TOKEN = os.environ.get("TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    data = {
-        "chat_id": CHAT_ID,
-        "text": message
-    }
-    requests.post(url, data=data)
+    requests.post(url, data={"chat_id": CHAT_ID, "text": message})
 
-@app.route('/webhook', methods=['POST'])
+@app.route("/")
+def home():
+    return "Bot Running OK 🚀"
+
+@app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.json
+    data = request.json or {}
 
     symbol = data.get("symbol", "N/A")
     signal = data.get("signal", "N/A")
     price = data.get("price", "N/A")
 
-    msg = f"""
-📊 TRADE SIGNAL
-
-PAIR: {symbol}
-ACTION: {signal}
-PRICE: {price}
-
-⚡ Manual MT5 entry
-"""
-
-    send_telegram(msg)
+    send_telegram(f"PAIR: {symbol}\nSIGNAL: {signal}\nPRICE: {price}")
     return {"status": "ok"}
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
